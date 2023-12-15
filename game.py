@@ -51,6 +51,9 @@ class Field:
         self.__height: int = height
         self.__width: int = width
         self.__ships: List[Ship] = []
+        self.__grid: List[List[(Coordinate, str)]] = [
+            [(Coordinate(x, y), DEFAULT_SIGN) for x in range(self.__width)] for y in range(self.__height)
+        ]
 
     def getHeight(self):
         return self.__height
@@ -83,17 +86,11 @@ class Field:
                     return True
         return False
 
-    def __getFieldMatrix(self) -> list:
-        return [
-            [(Coordinate(x, y), DEFAULT_SIGN) for x in range(self.__width)] for y in range(self.__height)
-        ]
-
     def display_field(self):
-        field_matrix: list = self.__getFieldMatrix()
         for ship in self.__ships:
             for coordinate in [coordinate for coordinate in ship.getCoordinates()]:
                 x, y = coordinate.getX(), coordinate.getY()
-                field_matrix[y][x] = (coordinate, ship.getSign())
+                self.__grid[y][x] = (coordinate, ship.getSign())
 
         blue = "\033[94m"
         pink = "\033[95m"
@@ -108,7 +105,7 @@ class Field:
 
         # Print the top border
         print("\t  " + "".join(["-----" for _ in range(self.__width)]))
-        for y, row in enumerate(field_matrix):
+        for y, row in enumerate(self.__grid):
             # Print the y-axis coordinate with color
             print(f"{blue}{y+1}{end_color}\t |", end="")
             for cell in row:
@@ -126,7 +123,7 @@ class Field:
         print("\t  " + "".join(["-----" for _ in range(self.__width)]))
 
 
-def create():
+if __name__ == "__main__":
     field = Field(10, 10)
     ship1 = Ship(
         [Coordinate(i, 2) for i in range(2, 7)],
@@ -156,6 +153,3 @@ def create():
         print({e})
     finally:
         field.display_field()
-
-
-create()
