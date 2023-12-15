@@ -147,6 +147,7 @@ def create():
         field.place_ship(ship2)
         field.place_ship(ship3)
         field.hit_ship(6, 6)
+        field.hit_ship(3, 3)
         field.hit_ship(4, 3)
         field.hit_ship(5, 3)
         field.hit_ship(6, 3)
