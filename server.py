@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(name)s: %(message)s',
                     )
 
-MAX_DAMAGED_COORDINATES = 5
+MAX_DAMAGED_COORDINATES = 18
 FIELD_HEIGHT = 10
 FIELD_WIDTH = 10
 
@@ -124,8 +124,10 @@ class Server:
                 client_handler.start()
 
                 if len(self.__clients) % 2 == 0:
-                    player1 = self.__clients[-2]
-                    player2 = self.__clients[-1]
+                    clients_start_index = len(
+                        self.__clients) - (2 * len(self.games))
+                    player1 = self.__clients[-clients_start_index]
+                    player2 = self.__clients[-clients_start_index + 1]
                     new_game = Game(self)
                     new_game.addPlayer(player1)
                     new_game.addPlayer(player2)
@@ -307,8 +309,11 @@ class Game:
 
             player1.getBlockingEvent().set()
             player2.getBlockingEvent().set()
-            self.gameServer._disconnect_client(player1)
-            self.gameServer._disconnect_client(player2)
+
+            # FIXME: the client is being removed from the list early
+            # so an error appears at the end of the game
+            # self.gameServer._disconnect_client(player1)
+            # self.gameServer._disconnect_client(player2)
 
             self.game_close_event.set()
             self.gameServer.games.remove(self)
@@ -342,7 +347,9 @@ class Game:
                         self.logger.info(
                             f"Received attack status from player {client.getAddress()}")
                         self.__handle_receive_attack_status(client, message)
-                    elif message_type == "exit":
+                    elif message["type"] == "close":
+                        self.gameServer._disconnect_client(client)
+                    elif message["type"] == "exit":
                         self.__handle_close(client)
         except socket.error as e:
             # send a close signal to client's socket when ERROR
@@ -359,7 +366,6 @@ class Game:
         try:
             client.getBlockingEvent().set()
             data = client.getSocket().recv(2048)
-            print(data)
             message = json.loads(data.decode())
             if message["type"] == "coordinates":
                 self.logger.info(
@@ -375,7 +381,8 @@ class Game:
                         ),
                         orientation=ship["orientation"]
                     )
-
+                # clients_start_index = len(
+                #     self.gameServer.getClients()) - (len(self.gameServer.games))
                 if self.gameServer.getClients().index(client) == starting_client_turn:
                     message["starting"] = 1
                 else:
@@ -386,6 +393,8 @@ class Game:
                         "player_coordinates": message
                     }
                 )
+            elif message["type"] == "close":
+                self.gameServer._disconnect_client(client)
             elif message["type"] == "exit":
                 self.__handle_close(client)
             else:
@@ -446,7 +455,8 @@ class Game:
     def __handle_close(self, client: Client):
         client_index = self.gameServer.getClients().index(client)
         opponent = self.gameServer.getClients()[
-            1 - client_index]
+            1 - client_index
+        ]
         opponent.getSocket().send(
             json.dumps(
                 {

@@ -364,8 +364,6 @@ class Client:
                             self.__handle_receiving_ships_coordinates(
                                 self.__opponent, decoded_message
                             )
-                            self.logger.info(
-                                "Opponenet's ships have been placed. The war has began")
                             if decoded_message["starting"] == 1:
                                 self.logger.info(
                                     "The first hit is yours...")
@@ -408,7 +406,7 @@ class Client:
                         else:
                             self.logger.info(decoded_message)
             except KeyboardInterrupt:
-                self._close_connection_from_client()
+                self._close_connection_from_client("exit")
                 break
             except socket.error as e:
                 self.logger.error(f"Error connecting to the server: {e}")
@@ -494,10 +492,12 @@ class Client:
         else:
             self.logger.info(
                 f"{red}{message["message"]}{end_color}")
-        self._close_connection_from_client()
+        self._close_connection_from_client("close")
 
     def prompt_and_send_player_ship_informationss(self, default_ships: List[Ship]):
         try:
+            Field.display_fields(
+                self.__player.getField(), Field(10, 10))
             for ship in default_ships:
                 self.__player.prompt_ship_placement(ship)
                 Field.display_fields(
@@ -540,13 +540,13 @@ class Client:
             self.logger.info(
                 "Waiting for the opponent to place his ships..")
         except KeyboardInterrupt:
-            self._close_connection_from_client()
+            self._close_connection_from_client("exit")
             return
 
-    def _close_connection_from_client(self):
+    def _close_connection_from_client(self, message):
         try:
             self.logger.info("Closing connection with the server..")
-            self.server_socket.send(json.dumps({"type": "exit"}).encode())
+            self.server_socket.send(json.dumps({"type": message}).encode())
         except socket.error as e:
             self.logger.error(f"Error connecting to the server{e}")
             pass
@@ -586,5 +586,5 @@ if __name__ == "__main__":
 
         close_event.wait()
     except KeyboardInterrupt:
-        client._close_connection_from_client()
+        client._close_connection_from_client("exit")
         exit(0)
